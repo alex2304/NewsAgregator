@@ -6,7 +6,7 @@
 
 package ru.xd720p.mainAuthorization;
 
-import web.http.HttpBrowser;
+import web.http.NAHttpBrowser;
 
 /**
  *
@@ -15,11 +15,11 @@ import web.http.HttpBrowser;
 public abstract class OAuthImpl implements OAuth{
 
     //Все поля и методы, общие для ВСЕХ классов авторизации (и для вк, и для инстаграмма, и т.д.) помещаем сюда
-    private HttpBrowser browser;
+    private NAHttpBrowser browser;
     private String accessToken, oAuthURI;
     
     public OAuthImpl(){
-        browser = new HttpBrowser(null);
+        browser = new NAHttpBrowser(null, true);
     }
     
     /**

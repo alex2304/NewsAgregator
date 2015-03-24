@@ -14,7 +14,7 @@ import org.apache.http.protocol.HttpContext;
  *
  * @author Leha
  */
-public class KeepAliveStrategy extends DefaultConnectionKeepAliveStrategy{
+public class NAKeepAliveStrategy extends DefaultConnectionKeepAliveStrategy{
     
     private final long keepAliveTime;
     
@@ -27,7 +27,7 @@ public class KeepAliveStrategy extends DefaultConnectionKeepAliveStrategy{
         return keepAliveTime;
     }
     
-    public KeepAliveStrategy(long keepAliveTime){
+    public NAKeepAliveStrategy(long keepAliveTime){
         this.keepAliveTime = keepAliveTime;
     }
 }
