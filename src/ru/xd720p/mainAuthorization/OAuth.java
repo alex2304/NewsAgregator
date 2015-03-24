@@ -4,12 +4,13 @@
  * and open the template in the editor.
  */
 
-package web.authorization;
+package ru.xd720p.mainAuthorization;
 
 /**
  *
  * @author Leha
  */
-public interface Authorization {
-    String performAuthorization(String email, String password);
+public interface OAuth {
+    String performAuthorization(String login, String password);
+    Boolean isAuthorized(String accessToken);
 }
