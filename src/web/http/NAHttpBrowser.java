@@ -6,22 +6,35 @@
 
 package web.http;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpRetryException;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.http.Consts;
+import org.apache.http.Header;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.NameValuePair;
+import org.apache.http.ParseException;
+import org.apache.http.ProtocolVersion;
+import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.HttpHostConnectException;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicHeaderElementIterator;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 
 
 /**
@@ -80,6 +93,23 @@ public class NAHttpBrowser {
     }
     
     /**
+     * Функция проверяет заголовок на наличие полей Name и Value, а так же на 
+     * корректное содержимое этих полей (имя из списка всех возможных заголовков, 
+     * значения должны быть без запрещённых символов)
+     * @param header заголовок для валидации
+     * @return true если заголовок валидный
+     */
+    private boolean validateHeader(NameValuePair header){
+        if (header == null) return false;
+        BasicNameValuePair h = (BasicNameValuePair)header;
+        if (h.getValue() == null || h.getName() == null) return false;
+        
+        //validate header (регулярные выражения, список заголовков)
+        
+        return true;    
+    }
+    
+    /**
      * 
      * @param iterator итератор списка HTTP заголовков с конкретным именем
      * @return список параметров для заданного HTTP заголовка 
@@ -103,7 +133,7 @@ public class NAHttpBrowser {
      */
     private boolean applyParamsBeforeRequest(boolean reqType, URI uri){
         if (uri == null) return false;
-        boolean isFormEntityEmpty = (formEntity == null) ? true: false;
+        boolean isFormEntityEmpty = (formEntity == null);
         if  (reqType) {
             httpGet = new HttpGet(uri);
         } else {
@@ -119,36 +149,123 @@ public class NAHttpBrowser {
         return true;
     }
     
+    private void applyParamsAfterRequest(){
+        if (!storeFormParams) formEntity = null;
+        //accept and set cookies
+        this.httpResponse = null;
+    }
+    
     /**
-     * Функция проверяет заголовок на наличие полей Name и Value, а так же на 
-     * корректное содержимое этих полей (имя из списка всех возможных заголовков, 
-     * значения должны быть без запрещённых символов)
-     * @param header заголовок для валидации
-     * @return true если заголовок валидный
+     * 
+     * @param reqType true если запрос GET, false если POST
+     * @return NAHttpResponse - пустой или нет, зависит от успешности выполнения запроса.
      */
-    private boolean validateHeader(NameValuePair header){
-        BasicNameValuePair h = (BasicNameValuePair)header;
-        if (h.getValue() == null || h.getName() == null) return false;
-        
-        //validate header (регулярные выражения, список заголовков)
-        
-        return true;    
+    private NAHttpResponse executeRequest(boolean reqType){
+        NAHttpResponse result = new NAHttpResponse();
+        try {
+            this.httpResponse = (reqType) ? httpClient.execute(httpGet): httpClient.execute(httpPost);
+            if (this.httpResponse != null){
+                int responseCode = this.httpResponse.getStatusLine().getStatusCode(); //получаем status code
+                
+                List<NAHttpHeader> resultResponseHeaders = new ArrayList<NAHttpHeader>(); //получаем заголовки ответа
+                HeaderElementIterator it;
+                String currHeaderName;
+                Header[] responseHeaders = httpResponse.getAllHeaders();
+                for (Header currHeader : responseHeaders){ 
+                    currHeaderName = currHeader.getName();
+                    it = new BasicHeaderElementIterator(httpResponse.headerIterator(currHeaderName));
+                    resultResponseHeaders.add(new NAHttpHeader(currHeaderName, parseHeaderParameters(it)));
+                }
+                
+                long contentLength = 0; //получаем длину контента и сам контент
+                String responseContent = null;
+                HttpEntity responseEntity = this.httpResponse.getEntity();
+                if (responseEntity != null){
+                    contentLength = responseEntity.getContentLength();
+                    /*byte[] responseText = new byte[contentLength]; //"самопальная" версия получения контента (не тестировалась)
+                    InputStream instream = responseEntity.getContent();
+                    if (instream.read(responseText) != -1) responseContent = String.valueOf(responseText); */ 
+                    /*if (contentLength != -1 && contentLength < 2048){ //версия, предложенная в методе (contentLength иногда приходит -1, но контент есть)
+                        responseContent = EntityUtils.toString(responseEntity);
+                    } else {
+                        contentLength = 0; 
+                    } */
+                    responseContent = EntityUtils.toString(responseEntity); //текущая бета-версия получения контента
+
+                }
+                
+                result = new NAHttpResponse(responseCode, resultResponseHeaders, responseContent, contentLength);
+            } else throw new Exception("Connection troubles");
+        } catch (Exception e){
+            System.err.println(e.getMessage());
+        }
+        finally {
+            try {
+                if (httpResponse != null) httpResponse.close();
+            } catch (IOException e){
+                System.err.println(e.getMessage());
+            }
+            applyParamsAfterRequest();
+            return result;
+        }
     }
     
-    public String sendGetRequest(String headers){
-        return null;
+    /**
+     * Выполняет get-запрос по URI, содержащемуся в поле класса.
+     * К запросу добавляются все заголовки, содержащиеся в customHeaders, параметры форм (если это POST-запрос) и куки 
+     * для домена, по которому выполняется запрос. 
+     * При составлении запроса используются все параметры httpClient, установленные до этого.
+     * @return null, если URI некорректно или равно null; "пустой" NAHttpResponse, если не удалось выполнить запрос; не пустой NAHttpResponse, если всё успешно.
+     */
+    public NAHttpResponse sendGetRequest(){
+        if (!applyParamsBeforeRequest(true, currentURI)) return null;
+        return executeRequest(true);
     }
     
-    public String sendGetRequest(String headers, String host){
-        return null;
+    /**
+     * Из строки host строит URI и выполняет по этому URI запрос. Возвращает null, если host null либо не является корректным URI.
+     * К запросу добавляются все заголовки, содержащиеся в customHeaders, параметры форм (если это POST-запрос) и куки 
+     * для домена, по которому выполняется запрос.
+     * При составлении запроса используются все параметры httpClient, установленные до этого.
+     * @return null, если URI некорректно или равно null; "пустой" NAHttpResponse, если не удалось выполнить запрос; не пустой NAHttpResponse, если всё успешно.
+     */
+    public NAHttpResponse sendGetRequest(String host){
+        try {
+            if (!applyParamsBeforeRequest(true, new URI(host))) return null;
+            return executeRequest(true);
+        } catch ( URISyntaxException e){
+            System.err.println(e.getMessage());
+            return null;
+        }
     }
     
-    public String sendPostRequest(String headers){
-        return null;
+    /**
+     * Выполняет запрос по URI, содержащемуся в поле класса.
+     * К запросу добавляются все заголовки, содержащиеся в customHeaders, параметры форм (если это POST-запрос) и куки 
+     * для домена, по которому выполняется запрос. 
+     * При составлении запроса используются все параметры httpClient, установленные до этого.
+     * @return null, если URI некорректно или равно null; "пустой" NAHttpResponse, если не удалось выполнить запрос; не пустой NAHttpResponse, если всё успешно.
+     */
+    public NAHttpResponse sendPostRequest(){
+        if (!applyParamsBeforeRequest(false, currentURI)) return null;
+        return executeRequest(false);
     }
     
-    public String sendPostRequest(String headers, String host){
-        return null;
+    /**
+     * Из строки host строит URI и выполняет по этому URI запрос. Возвращает null, если host null либо не является корректным URI.
+     * К запросу добавляются все заголовки, содержащиеся в customHeaders, параметры форм (если это POST-запрос) и куки 
+     * для домена, по которому выполняется запрос.
+     * При составлении запроса используются все параметры httpClient, установленные до этого.
+     * @return null, если URI некорректно или равно null; "пустой" NAHttpResponse, если не удалось выполнить запрос; не пустой NAHttpResponse, если всё успешно.
+     */
+    public NAHttpResponse sendPostRequest(String host){
+        try {
+            if (!applyParamsBeforeRequest(false, new URI(host))) return null;
+            return executeRequest(false);
+        } catch ( URISyntaxException e){
+            System.err.println(e.getMessage());
+            return null;
+        }
     }
     
     /**
@@ -162,8 +279,6 @@ public class NAHttpBrowser {
         formEntity = new UrlEncodedFormEntity(params, Consts.UTF_8);
         return true;
     }
-    
-    
 
     /**
      * @return параметр keep-alive, установленный в браузере (это время, которое будет поддерживаться соединение) в мс
@@ -176,7 +291,7 @@ public class NAHttpBrowser {
      * @return текущий URI в строковом представлении
      */
     public String getCurrentURI() {
-        return currentURI.toASCIIString();
+        return (currentURI == null) ? null: currentURI.toASCIIString();
     }
 
     /**
@@ -229,10 +344,10 @@ public class NAHttpBrowser {
      * @return true, если заголовок корректен 
      */
     public boolean addCustomHeader(NameValuePair header){
-        if (header == null) return false;
-        if (header.getName() == null || header.getValue() == null) return false;
-        customHeaders.add(header);
-        return true;
+        boolean result;
+        if (result = validateHeader(header)) 
+            customHeaders.add(header);
+        return result;
     }
     
     /**
@@ -247,7 +362,7 @@ public class NAHttpBrowser {
         for (NameValuePair header: headers){
             if (header == null) throw new NullPointerException("WebBrowser->addCustomHeaders: One of the headers was null.");
             BasicNameValuePair it = (BasicNameValuePair)header;
-            if ( validateHeader(header) ) result.add(header); else customHeaders.add(header); //добавить проверку HEADER'ов!
+            if ( validateHeader(header) ) result.add(header); else customHeaders.add(header); 
         }
         return (result.isEmpty()) ? null: result;
     }
