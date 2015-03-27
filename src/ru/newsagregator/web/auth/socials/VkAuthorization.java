@@ -4,9 +4,9 @@
  * and open the template in the editor.
  */
 
-package ru.xd720p.socAuthorization;
+package ru.newsagregator.web.auth.socials;
 
-import ru.xd720p.mainAuthorization.OAuthImpl;
+import ru.newsagregator.web.auth.oauth.OAuthImpl;
 
 /**
  *

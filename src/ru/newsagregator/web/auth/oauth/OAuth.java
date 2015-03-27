@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package ru.xd720p.mainAuthorization;
+package ru.newsagregator.web.auth.oauth;
 
 /**
  *

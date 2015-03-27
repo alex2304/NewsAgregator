@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package web.http;
+package ru.newsagregator.web.http;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package web.http;
+package ru.newsagregator.web.http;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,12 +24,18 @@ import org.apache.http.HttpHost;
 import org.apache.http.NameValuePair;
 import org.apache.http.ParseException;
 import org.apache.http.ProtocolVersion;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpResponseException;
+import org.apache.http.client.config.CookieSpecs;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.HttpHostConnectException;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.cookie.CookieSpec;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeaderElementIterator;
@@ -44,6 +50,7 @@ import org.apache.http.util.EntityUtils;
 public class NAHttpBrowser {
     private static final String userAgent = "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko)";
     private static final long keepAliveTime = 5000;
+    private final String storePath = "config/conf";
     
     private final CloseableHttpClient httpClient; //Клиент со множеством параметров. httpResponse = htpClient.execute(HttpGet/Post http) - для отправки запроса на сервер и получения ответа
     private URI currentURI; //текущий адрес, по которому будут выполняться запросы
@@ -51,9 +58,12 @@ public class NAHttpBrowser {
     private HttpPost httpPost; //объект для выполнения post-запросов. hhtpPost = new HttpPost(URI uri) - для "нацеливания" на определённый адрес.
     private CloseableHttpResponse httpResponse; //объект для получения результата запроса.
     private UrlEncodedFormEntity formEntity; //используется для иммитации отправки данных из html-форм. хранит параметры форм, после каждого запроса очищается
-    private List<NameValuePair> customHeaders; 
+    private List<NameValuePair> customHeaders; //заголовки, автоматически добавляемые к каждому запросу
+    private NACookieStore cookieStore; //хранилище cookie
     
     private boolean storeFormParams; //true если нужно хранить параметры форм после выполнения запроса, иначе false
+    //RetryHandler
+    //Multithreaded request execution
     
     /**
      * 
@@ -68,6 +78,13 @@ public class NAHttpBrowser {
             System.err.println(exc.getMessage());
             currentURI = null;
         }
+        try {
+            cookieStore = new NACookieStore(storePath);
+        } catch (IOException e){
+            System.err.println(e.getMessage());
+            cookieStore = new NACookieStore();
+        }
+        
         customHeaders = new ArrayList<NameValuePair>();
         initializeGetPost();
         httpResponse = null;
@@ -76,6 +93,8 @@ public class NAHttpBrowser {
                 .setKeepAliveStrategy(new NAKeepAliveStrategy(keepAliveTime))
                 .setUserAgent(userAgent)
                 .setDefaultHeaders(NAHttpHeaders.getDefaultHeadersList())
+                .setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.DEFAULT).build())
+                .setDefaultCookieStore(cookieStore)
                 .build();
     }
     
@@ -365,6 +384,10 @@ public class NAHttpBrowser {
             if ( validateHeader(header) ) result.add(header); else customHeaders.add(header); 
         }
         return (result.isEmpty()) ? null: result;
+    }
+    
+    public List<Cookie> getAllCookies(){
+        return cookieStore.getCookies();
     }
     
     
