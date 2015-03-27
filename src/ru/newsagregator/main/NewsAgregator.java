@@ -39,7 +39,7 @@ public class NewsAgregator {
         browser.setCurrentURI(host); //устанавливаем url
         
         for (int i = 0; i < 2; i++){
-        NAHttpResponse response = browser.sendGetRequest("http://google.ru"); //4812992 - appId
+        NAHttpResponse response = browser.sendGetRequest("http://vk.com"); //4812992 - appId
         for (Cookie c: browser.getAllCookies()){
             BasicClientCookie curr = (BasicClientCookie)c;
             System.out.println(curr.toString());
