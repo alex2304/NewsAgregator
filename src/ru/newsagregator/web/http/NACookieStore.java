@@ -15,14 +15,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.text.ParseException;
 import java.util.Date;
-import java.util.List;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.cookie.BasicClientCookie;
-import org.apache.http.impl.cookie.BasicClientCookie2;
 
 /**
  *
@@ -34,10 +31,18 @@ public class NACookieStore extends BasicCookieStore{
     private int cookieCount;
     private NACookieParser cookieParser;
     
+    /**
+     * Вызывает конструктор родителя. При такой инициализации будут корректно работать только методы и поля родителя.
+     */
     public NACookieStore(){
         super();
     }
     
+    /**
+     * Пытается подключиться к хранилищу, указанному в storePath,и прочитать оттуда куки, добавив их классу-родителю
+     * @param storePath путь к хранилищу относительно корневой папки проекта
+     * @throws IOException  если путь неккоректен / нет прав доступа / файл хранилища имеет неверный формат
+     */
     public NACookieStore(String storePath) throws IOException{
         super();
         this.cookieParser = new NACookieParser(null);
@@ -49,6 +54,11 @@ public class NACookieStore extends BasicCookieStore{
         if (readed != null) super.addCookies(readed);
     }
     
+    /**
+     * Пытается прочитать куки из хранилища
+     * @return массив объектов класса BasicClientCookie
+     * @throws IOException  если пути не существует / нет прав доступа / файл имеет неверный формат
+     */
     private Cookie[] readFromFile() throws IOException{
         if (store == null) throw new IOException("Bad store path"); //эта строчка не нужна, ну да ладно :)
         if (!store.canRead() || !store.canWrite()) throw new IOException("Bad store path");
@@ -63,7 +73,8 @@ public class NACookieStore extends BasicCookieStore{
         }
         tmp = sb.toString(); //строка, представл. собой всё содержимое файла
         try {
-            //tmp = decode(tmp); расшифровка содержимого файла
+            //tmp = decode(tmp); расшифровка содержимого файла 
+            //переделать этот блок, чтобы выбрасывались тематические исключения и устанавливалась хотя бы часть куков
             String[] cookies = tmp.split(NACookieParser.SPLITTER);
             Cookie[] result = new Cookie[cookies.length];
             for (int i = 0; i < cookies.length; i++){
@@ -72,7 +83,12 @@ public class NACookieStore extends BasicCookieStore{
                 c.setPath(cookieParser.getCookiePath());
                 c.setVersion(cookieParser.getCookieVersion());
                 c.setDomain(cookieParser.getCookieDomain());
-                //c.setExpiryDate(cookieParser.getCookieExpires());
+                try {
+                    c.setExpiryDate(cookieParser.getCookieExpires());
+                } catch (ParseException e){
+                    System.err.println("CookieParser: can't parse expires date of cookie '" + c.getName() + "'");
+                    c.setExpiryDate(null);
+                }
                 result[i] = c;
             }
             return result;
@@ -81,6 +97,10 @@ public class NACookieStore extends BasicCookieStore{
         }
     }
     
+    /**
+     * Пытается записать свои куки в файл хранилища
+     * @throws IOException если пути не существует / нет прав доступа / Путин краб
+     */
     public void saveToFile() throws IOException{
         if (store == null) throw new IOException("Bad cookie store path"); 
         if (!store.canRead() || !store.canWrite()) throw new IOException("Bad cookie store path");

@@ -27,6 +27,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.message.BasicHeaderElementIterator;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
@@ -53,7 +54,6 @@ public class NAHttpBrowser {
     private boolean storeFormParams; //true если нужно хранить параметры форм после выполнения запроса, иначе false
     //RetryHandler
     //Multithreaded request execution
-    //исправить некорректное поведение стандартного обработчика cookie для вконтакте
     
     /**
      * 
@@ -83,7 +83,7 @@ public class NAHttpBrowser {
                 .setKeepAliveStrategy(new NAKeepAliveStrategy(keepAliveTime))
                 .setUserAgent(userAgent)
                 .setDefaultHeaders(NAHttpHeaders.getDefaultHeadersList())
-                .setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.DEFAULT).build())
+                .setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build())
                 .setDefaultCookieStore(cookieStore)
                 .build();
     }
@@ -380,8 +380,40 @@ public class NAHttpBrowser {
         return (result.isEmpty()) ? null: result;
     }
     
-    public List<Cookie> getAllCookies(){
-        return cookieStore.getCookies();
+    /**
+     * 
+     * @return list элементов класса Cookie
+     */
+    public List<NameValuePair> getAllCookies(){
+        List<NameValuePair> result = new ArrayList<NameValuePair>();
+        for (Cookie c: cookieStore.getCookies()){
+            result.add(new BasicNameValuePair(c.getName(), c.getValue()));
+        }
+        return result;
+    }
+    
+    /**
+     * Добавляет новое куки
+     * @param name имя куки
+     * @param value значение
+     * @return ture если переданные параметры не равны null и куки добавилось
+     */
+    public boolean addCookie(String name, String value){
+        if (name == null || value == null) return false;
+        cookieStore.addCookie(new BasicClientCookie(name, value));
+        return true;
+    }
+    
+    /**
+     * Добавляет новое куки
+     * @param nameValue имя и значение куки
+     * @return true если параметры не null и удалосб добавить куку
+     */
+    public boolean addCookie(NameValuePair nameValue){
+        if (nameValue == null) return false;
+        if (nameValue.getName() == null || nameValue.getValue() == null) return false;
+        cookieStore.addCookie(new BasicClientCookie(nameValue.getName(), nameValue.getValue()));
+        return true;
     }
     
     
