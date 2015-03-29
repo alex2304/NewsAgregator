@@ -17,6 +17,7 @@ public final class NAHttpResponse {
     private long contentLength;
     private int responseCode;
     private List<NAHttpHeader> responseHeaders;
+    private String finalLocation;
     private String responseContet;
     private boolean empty, content;
     
@@ -25,15 +26,17 @@ public final class NAHttpResponse {
         this.contentLength = 0;
         this.responseContet = null;
         this.responseHeaders = null;
+        this.finalLocation = null;
         setEmpty(true);
         setHasContent(false);
     }
     
-    protected NAHttpResponse(final int responseCode, final List<NAHttpHeader> responseHeaders, final String responseContent, final long contentLength){
+    protected NAHttpResponse(final int responseCode, final List<NAHttpHeader> responseHeaders, final String responseContent, final long contentLength, final String finalLocation){
         this.responseCode = responseCode;
         this.responseHeaders = responseHeaders;
         this.responseContet = responseContent;
         this.contentLength = contentLength;
+        this.finalLocation = finalLocation;
         if (responseHeaders != null) setEmpty(false); else setEmpty(true);
         if (responseHeaders != null && responseContent != null) setHasContent(true); else setHasContent(false);
     }
@@ -118,6 +121,33 @@ public final class NAHttpResponse {
      */
     protected void setContentLength(long contentLength) {
         this.contentLength = contentLength;
+    }
+
+    /**
+     * @return the finalLocation
+     */
+    public String getFinalLocation() {
+        return finalLocation;
+    }
+
+    /**
+     * @param finalLocation the finalLocation to set
+     */
+    protected void setFinalLocation(String finalLocation) {
+        this.finalLocation = finalLocation;
+    }
+
+    /**
+     * Возвращает объект NAHttpHeader, характеризующий http заголовок с именем name
+     * @param name имя http заголовка (в любом регистре)
+     * @return null, если такого заголовка нет либо список заголовков пуст. в противном случае - объект заголовка
+     */
+    public NAHttpHeader getHeaderByName(String name) {
+        if (this.isEmpty()) return null;
+        for (NAHttpHeader curr: this.responseHeaders){
+            if (curr.getName().equalsIgnoreCase(name.toLowerCase())) return curr;
+        }
+        return null;
     }
     
     

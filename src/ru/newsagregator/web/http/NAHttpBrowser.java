@@ -17,6 +17,7 @@ import org.apache.http.Header;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
@@ -24,6 +25,8 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.client.utils.URIUtils;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -50,6 +53,7 @@ public class NAHttpBrowser {
     private UrlEncodedFormEntity formEntity; //используется для иммитации отправки данных из html-форм. хранит параметры форм, после каждого запроса очищается
     private List<NameValuePair> customHeaders; //заголовки, автоматически добавляемые к каждому запросу
     private NACookieStore cookieStore; //хранилище cookie
+    private HttpClientContext clientContext; //контекст запросов
     
     private boolean storeFormParams; //true если нужно хранить параметры форм после выполнения запроса, иначе false
     //RetryHandler
@@ -74,7 +78,7 @@ public class NAHttpBrowser {
             System.err.println(e.getMessage());
             cookieStore = new NACookieStore();
         }
-        
+        clientContext = HttpClientContext.create();
         customHeaders = new ArrayList<NameValuePair>();
         initializeGetPost();
         httpResponse = null;
@@ -176,7 +180,7 @@ public class NAHttpBrowser {
     private NAHttpResponse executeRequest(boolean reqType){
         NAHttpResponse result = new NAHttpResponse();
         try {
-            this.httpResponse = (reqType) ? httpClient.execute(httpGet): httpClient.execute(httpPost);
+            this.httpResponse = (reqType) ? httpClient.execute(httpGet, clientContext): httpClient.execute(httpPost, clientContext);
             if (this.httpResponse != null){
                 int responseCode = this.httpResponse.getStatusLine().getStatusCode(); //получаем status code
                 
@@ -189,6 +193,11 @@ public class NAHttpBrowser {
                     it = new BasicHeaderElementIterator(httpResponse.headerIterator(currHeaderName));
                     resultResponseHeaders.add(new NAHttpHeader(currHeaderName, parseHeaderParameters(it)));
                 }
+                
+                HttpHost target = clientContext.getTargetHost(); //получаем http адрес назначения
+                List<URI> redirectLocations = clientContext.getRedirectLocations();
+                URI location = URIUtils.resolve((reqType) ? httpGet.getURI(): httpPost.getURI(), target, redirectLocations);
+                String finalLocation = (location == null) ? null: location.toASCIIString();
                 
                 long contentLength = 0; //получаем длину контента и сам контент
                 String responseContent = null;
@@ -207,7 +216,7 @@ public class NAHttpBrowser {
 
                 }
                 
-                result = new NAHttpResponse(responseCode, resultResponseHeaders, responseContent, contentLength);
+                result = new NAHttpResponse(responseCode, resultResponseHeaders, responseContent, contentLength, finalLocation);
             } else throw new Exception("Connection troubles");
         } catch (Exception e){
             System.err.println(e.getMessage());

@@ -37,16 +37,38 @@ public class NewsAgregator {
     public static void main(String[] args) throws IOException {
         NAHttpBrowser browser = new NAHttpBrowser(null, true); //4812992 - appId   
         NAHttpResponse response;
-        String host = "https://oauth.vk.com/authorize?client_id=4812992&"
+        String host_3 = "https://login.vk.com/?act=grant_access&" //забирать access_token из заголовка location этого парня
+                + "client_id=4812992&"
+                + "settings=124&"
+                + "redirect_uri=https%3A%2F%2Foauth.vk.com%2Fblank.html&"
+                + "response_type=token&"
+                + "direct_hash=4b814296a1319b4422&"
+                + "token_type=0&"
+                + "v=5.29&"
+                + "state=&"
+                + "display=popup&"
+                + "ip_h=902335c18b5e703797&"
+                + "hash=f99465bbf5a12306e2&"
+                + "https=1";
+        String host_2 = "https://oauth.vk.com/authorize?client_id=4812992&" //хеш берётся из Location предыдущего запроса
+                + "redirect_uri=https%3A%2F%2Foauth.vk.com%2Fblank.html&"
+                + "response_type=token&"
+                + "scope=124&"
+                + "v=5.29&"
+                + "state=&"
+                + "display=popup&"
+                + "__q_hash=cb15c0d484bf9fa729418287affffcf5";
+        String host_1 = "https://login.vk.com/?act=login&soft=1"; //дополнительно сюда нужно передать параметры форм
+        String host_0 = "https://oauth.vk.com/authorize?client_id=4812992&" //изначально перенаправляет на страницу авторизации
                 + "scope=124&redirect_uri="+URLEncoder.encode("https://oauth.vk.com/blank.html", "CP1251")
                 + "&display=popup&v=5.29&response_type=token"; 
-        browser.setCurrentURI(host); //устанавливаем url
+        browser.setCurrentURI(host_0); //устанавливаем url
         
         
         for (int i = 0; i < 1; i++){ //делаем запрос n раз подряд
             response = browser.sendGetRequest(); //отправка гет-запроса
             doAfterRequest(browser, response); 
-        }
+        } 
         
         List<NameValuePair> params = new ArrayList<>();
         params.add(new BasicNameValuePair("ip_h", "902335c18b5e703797"));
@@ -57,7 +79,7 @@ public class NewsAgregator {
                 + "9wZT0xMjQmdj01LjI5JnN0YXRlPSZkaXNwbGF5PXBvcHVw"));
         params.add(new BasicNameValuePair("expire", "0"));
         params.add(new BasicNameValuePair("email", "dragon-dex@yandex.ru"));
-        params.add(new BasicNameValuePair("pass", ""));
+        params.add(new BasicNameValuePair("pass", "ScHeben123"));
         
         browser.setCurrentURI("https://login.vk.com/?act=login&soft=1");
         browser.setStoreFormParams(false);
@@ -65,8 +87,10 @@ public class NewsAgregator {
         response = browser.sendPostRequest();
         doAfterRequest(browser, response); 
         
-        browser.setCurrentURI(host);
-        browser.sendGetRequest();
+        BasicNameValuePair locationValue = (BasicNameValuePair)response.getHeaderByName("location").getParameters().get(0);
+        browser.setCurrentURI(locationValue.getName() + "=" + locationValue.getValue());
+        response = browser.sendGetRequest(); 
+        System.out.println(response.getFinalLocation());
     }
     
     public static void doAfterRequest(NAHttpBrowser browser, NAHttpResponse response){

@@ -72,6 +72,7 @@ public class NACookieStore extends BasicCookieStore{
             sb.append(tmp); 
         }
         tmp = sb.toString(); //строка, представл. собой всё содержимое файла
+        if (tmp.isEmpty()) return null;
         try {
             //tmp = decode(tmp); расшифровка содержимого файла 
             //переделать этот блок, чтобы выбрасывались тематические исключения и устанавливалась хотя бы часть куков
