@@ -7,6 +7,7 @@
 package ru.newsagregator.web.http;
 
 import java.util.List;
+import org.apache.http.message.BasicNameValuePair;
 
 /**
  * Объект класса является "пустым" (isEmpty() == true), если поле responseHeaders имеет значение null.
@@ -148,6 +149,21 @@ public final class NAHttpResponse {
             if (curr.getName().equalsIgnoreCase(name.toLowerCase())) return curr;
         }
         return null;
+    }
+
+    public String getLocationHeader() {
+        NAHttpHeader location = this.getHeaderByName("location");
+        if (location == null) return null;
+        try { //null exception can occur
+            BasicNameValuePair locationValue = (BasicNameValuePair)location.getParameters().get(location.getParameters().size() - 1);
+            String result = "";
+            result += locationValue.getName() + "=" + locationValue.getValue();
+            return result;
+        } catch (Exception e){
+            System.err.println(e.getMessage());
+            return null;
+        }
+        
     }
     
     

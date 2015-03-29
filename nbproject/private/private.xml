@@ -3,11 +3,9 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/E:/Work&amp;Study/6%20semester/DevelopingPO/NewsGenerator/src/ru/xd720p/mainAuthorization/OAuthImpl.java</file>
-            <file>file:/E:/Work&amp;Study/6%20semester/DevelopingPO/NewsGenerator/src/ru/xd720p/socAuthorization/VkAuthorization.java</file>
-            <file>file:/E:/Work&amp;Study/6%20semester/DevelopingPO/NewsGenerator/src/web/http/KeepAliveStrategy.java</file>
-            <file>file:/E:/Work&amp;Study/6%20semester/DevelopingPO/NewsGenerator/src/web/http/HttpHeaders.java</file>
-            <file>file:/E:/Work&amp;Study/6%20semester/DevelopingPO/NewsGenerator/src/web/http/HttpBrowser.java</file>
+            <file>file:/E:/Work&amp;Study/6%20semester/DevelopingPO/NewsGenerator/src/ru/newsagregator/web/http/NAHttpResponse.java</file>
+            <file>file:/E:/Work&amp;Study/6%20semester/DevelopingPO/NewsGenerator/src/ru/newsagregator/main/NewsAgregator.java</file>
+            <file>file:/E:/Work&amp;Study/6%20semester/DevelopingPO/NewsGenerator/src/ru/newsagregator/web/http/NAHttpHeader.java</file>
         </group>
     </open-files>
 </project-private>

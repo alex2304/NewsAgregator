@@ -23,6 +23,11 @@ public class NAHttpHeader implements Serializable{
         this.parameters = parameters;
     }
     
+    /**
+     * Метод toString() возвращает строковое представление данного объекта. 
+     * 
+     * @return 
+     */
     @Override
     public String toString(){
         String result = "";
@@ -66,5 +71,7 @@ public class NAHttpHeader implements Serializable{
     public void setParameters(List<NameValuePair> parameters) {
         this.parameters = parameters;
     }
+    
+    
     
 }

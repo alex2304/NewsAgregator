@@ -17,8 +17,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.http.NameValuePair;
-import org.apache.http.cookie.Cookie;
-import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.message.BasicNameValuePair;
 import ru.newsagregator.web.http.NAHttpBrowser;
 import ru.newsagregator.web.http.NAHttpHeader;
@@ -79,7 +77,7 @@ public class NewsAgregator {
                 + "9wZT0xMjQmdj01LjI5JnN0YXRlPSZkaXNwbGF5PXBvcHVw"));
         params.add(new BasicNameValuePair("expire", "0"));
         params.add(new BasicNameValuePair("email", "dragon-dex@yandex.ru"));
-        params.add(new BasicNameValuePair("pass", "ScHeben123"));
+        params.add(new BasicNameValuePair("pass", "ScHeben123")); //подставить сюда пароль
         
         browser.setCurrentURI("https://login.vk.com/?act=login&soft=1");
         browser.setStoreFormParams(false);
@@ -87,8 +85,8 @@ public class NewsAgregator {
         response = browser.sendPostRequest();
         doAfterRequest(browser, response); 
         
-        BasicNameValuePair locationValue = (BasicNameValuePair)response.getHeaderByName("location").getParameters().get(0);
-        browser.setCurrentURI(locationValue.getName() + "=" + locationValue.getValue());
+        String locationValue = response.getLocationHeader();
+        browser.setCurrentURI(locationValue);
         response = browser.sendGetRequest(); 
         System.out.println(response.getFinalLocation());
     }
