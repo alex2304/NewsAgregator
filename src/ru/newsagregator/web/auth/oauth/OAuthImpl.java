@@ -6,6 +6,8 @@
 
 package ru.newsagregator.web.auth.oauth;
 
+import java.io.UnsupportedEncodingException;
+import java.util.List;
 import ru.newsagregator.web.http.NAHttpBrowser;
 
 /**
@@ -15,11 +17,48 @@ import ru.newsagregator.web.http.NAHttpBrowser;
 public abstract class OAuthImpl implements OAuth{
 
     //Все поля и методы, общие для ВСЕХ классов авторизации (и для вк, и для инстаграмма, и т.д.) помещаем сюда
-    private NAHttpBrowser browser;
-    private String accessToken, oAuthURI;
+    private static final String defaultVersion = "5.29", defaultDisplay = "popup", defaultResponseType = "token"; //некоторые параметры по-умолчанию
+    private final String applicationId, scope, redirectURI, display, version, responseType; //параметры строки авторизации
+    private final String oAuthURI; //домен для авторизации
+    private String accessToken; //поле для ключа
+    protected NAHttpBrowser browser; //браузер
     
-    public OAuthImpl(){
-        browser = new NAHttpBrowser(null, true);
+    /**
+     * Объект класса будет создан успешно, если обязательные параметры не null. Иначе - исключение OAuthException.
+     * @param OAuthURI (обязательный) адрес для отправки OAuth запроса (в формате "oauth.vk.com/authorization", без указания протокола и указания параметров)
+     * @param applicationId (обязательный) уникальный номер приложения в данной соц. сети
+     * @param scope (обязательный) набор разрешений в данной соц. сети
+     * @param redirectURI (обязательный) адрес отправки токена
+     * @param display тип отображения окна авторизации
+     * @param version версия API
+     * @param responseType тип ответа: code или token
+     * @throws OAuthException в том случае, если один из обязательных параметров не задан или некорректен
+     */
+    protected OAuthImpl(String OAuthURI, String applicationId, String scope, String redirectURI, String display, String version, String responseType) throws OAuthException{
+        if (OAuthURI == null || applicationId == null || scope == null || redirectURI == null) throw new OAuthException("Incorrect input parameters");
+        this.oAuthURI = OAuthURI;
+        this.applicationId = applicationId;
+        this.scope = scope;
+        this.redirectURI = redirectURI;
+        this.display = (display == null) ? null: defaultDisplay;
+        this.version = (version == null) ? null: defaultVersion;
+        this.responseType = (responseType == null) ? null: defaultResponseType;
+        try {
+            browser = new NAHttpBrowser(getRequestURLFromParams(), false);
+        } catch (UnsupportedEncodingException e){
+            throw new OAuthException("Can't encode redirect url");
+        }
+        if (browser.getCurrentURI() == null) throw new OAuthException("Incorrect url for performing OAuth autorization");
+    }
+    
+    protected String getAccessToken(){
+        return this.accessToken;
+    }
+    
+    private String getRequestURLFromParams() throws UnsupportedEncodingException{
+        String result = "https://";
+        result += oAuthURI + "?" + OAuthFields.createParamString(applicationId, scope, redirectURI, display, version, responseType);
+        return result;
     }
     
     /**
@@ -38,7 +77,7 @@ public abstract class OAuthImpl implements OAuth{
     * @return возвращается полученный access_token либо номер ошибки
     * @author xd720p
     */
-    public String sendOAuthRequest(String socURI, String clientID, String redirectURI, String display, 
+    protected String sendOAuthRequest(String socURI, String clientID, String redirectURI, String display, 
     String scope, String responseType) {
         //добавить проверку строк на null
         String uri=socURI+
@@ -62,9 +101,10 @@ public abstract class OAuthImpl implements OAuth{
      * @return нужно ли возвращать что-либо?
      * @author xd720p
      */
-    public Boolean isAuthorized(String accessToken) {
-        
-        return null;
-    }
+    @Override
+    public abstract Boolean isAuthorized(String accessToken);
+    
+    @Override
+    public abstract String performAuthorization(String email, String password);
     
 }

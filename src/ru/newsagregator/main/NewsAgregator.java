@@ -18,6 +18,8 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
+import ru.newsagregator.web.auth.oauth.OAuthException;
+import ru.newsagregator.web.auth.socials.VkAuthorization;
 import ru.newsagregator.web.http.NAHttpBrowser;
 import ru.newsagregator.web.http.NAHttpHeader;
 import ru.newsagregator.web.http.NAHttpResponse;
@@ -33,7 +35,7 @@ public class NewsAgregator {
      * @throws java.io.IOException
      */
     public static void main(String[] args) throws IOException {
-        NAHttpBrowser browser = new NAHttpBrowser(null, true); //4812992 - appId   
+        /*NAHttpBrowser browser = new NAHttpBrowser(null, true); //4812992 - appId   
         NAHttpResponse response;
         String host_3 = "https://login.vk.com/?act=grant_access&" //забирать access_token из заголовка location этого парня
                 + "client_id=4812992&"
@@ -62,7 +64,6 @@ public class NewsAgregator {
                 + "&display=popup&v=5.29&response_type=token"; 
         browser.setCurrentURI(host_0); //устанавливаем url
         
-        
         for (int i = 0; i < 1; i++){ //делаем запрос n раз подряд
             response = browser.sendGetRequest(); //отправка гет-запроса
             doAfterRequest(browser, response); 
@@ -77,7 +78,7 @@ public class NewsAgregator {
                 + "9wZT0xMjQmdj01LjI5JnN0YXRlPSZkaXNwbGF5PXBvcHVw"));
         params.add(new BasicNameValuePair("expire", "0"));
         params.add(new BasicNameValuePair("email", "dragon-dex@yandex.ru"));
-        params.add(new BasicNameValuePair("pass", "ScHeben123")); //подставить сюда пароль
+        params.add(new BasicNameValuePair("pass", "")); //подставить сюда пароль
         
         browser.setCurrentURI("https://login.vk.com/?act=login&soft=1");
         browser.setStoreFormParams(false);
@@ -88,7 +89,15 @@ public class NewsAgregator {
         String locationValue = response.getLocationHeader();
         browser.setCurrentURI(locationValue);
         response = browser.sendGetRequest(); 
-        System.out.println(response.getFinalLocation());
+        System.out.println(response.getFinalLocation()); */
+        try {
+            VkAuthorization vkAuthorize = new VkAuthorization("oauth.vk.com/authorize", "4812992", "124", "https://oauth.vk.com/blank.html", null, null, null);
+            String accessToken = vkAuthorize.performAuthorization("dragon-dex@yandex.ru", ""); //подставить данные
+            System.out.println(accessToken);
+        } catch (OAuthException e){
+            System.err.println(e.getReason());
+        }
+        
     }
     
     public static void doAfterRequest(NAHttpBrowser browser, NAHttpResponse response){
