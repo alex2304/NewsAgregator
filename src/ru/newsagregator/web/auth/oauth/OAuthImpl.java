@@ -9,6 +9,7 @@ package ru.newsagregator.web.auth.oauth;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import ru.newsagregator.web.http.NAHttpBrowser;
+import ru.newsagregator.web.http.NAHttpResponse;
 
 /**
  *
@@ -17,11 +18,12 @@ import ru.newsagregator.web.http.NAHttpBrowser;
 public abstract class OAuthImpl implements OAuth{
 
     //Все поля и методы, общие для ВСЕХ классов авторизации (и для вк, и для инстаграмма, и т.д.) помещаем сюда
-    private static final String defaultVersion = "5.29", defaultDisplay = "popup", defaultResponseType = "token"; //некоторые параметры по-умолчанию
     private final String applicationId, scope, redirectURI, display, version, responseType; //параметры строки авторизации
     private final String oAuthURI; //домен для авторизации
     private String accessToken; //поле для ключа
     protected NAHttpBrowser browser; //браузер
+    protected NAHttpResponse response; //http ответ
+    protected OAuthException currException;
     
     /**
      * Объект класса будет создан успешно, если обязательные параметры не null. Иначе - исключение OAuthException.
@@ -32,34 +34,40 @@ public abstract class OAuthImpl implements OAuth{
      * @param display тип отображения окна авторизации
      * @param version версия API
      * @param responseType тип ответа: code или token
-     * @throws OAuthException в том случае, если один из обязательных параметров не задан или некорректен
      */
-    protected OAuthImpl(String OAuthURI, String applicationId, String scope, String redirectURI, String display, String version, String responseType) throws OAuthException{
-        if (OAuthURI == null || applicationId == null || scope == null || redirectURI == null) throw new OAuthException("Incorrect input parameters");
+    protected OAuthImpl(String OAuthURI, String applicationId, String scope, String redirectURI, String display, String version, String responseType){
+        if (OAuthURI == null || applicationId == null || scope == null || redirectURI == null) currException =  new OAuthException("Incorrect input parameters");
         this.oAuthURI = OAuthURI;
         this.applicationId = applicationId;
         this.scope = scope;
         this.redirectURI = redirectURI;
-        this.display = (display == null) ? null: defaultDisplay;
-        this.version = (version == null) ? null: defaultVersion;
-        this.responseType = (responseType == null) ? null: defaultResponseType;
+        this.display = display;
+        this.version = version;
+        this.responseType = responseType;
         try {
             browser = new NAHttpBrowser(getRequestURLFromParams(), false);
         } catch (UnsupportedEncodingException e){
-            throw new OAuthException("Can't encode redirect url");
+            currException = new OAuthException("Can't encode redirect url");
         }
-        if (browser.getCurrentURI() == null) throw new OAuthException("Incorrect url for performing OAuth autorization");
+        if (browser.getCurrentURI() == null) currException = new OAuthException("Incorrect url for performing OAuth autorization");
     }
     
     protected String getAccessToken(){
         return this.accessToken;
     }
     
-    private String getRequestURLFromParams() throws UnsupportedEncodingException{
+    protected String getRequestURLFromParams() throws UnsupportedEncodingException{
         String result = "https://";
         result += oAuthURI + "?" + OAuthFields.createParamString(applicationId, scope, redirectURI, display, version, responseType);
         return result;
     }
+    
+    protected OAuthException checkTroubles(){
+        return currException;
+    }
+    
+    
+    
     
     /**
     * 

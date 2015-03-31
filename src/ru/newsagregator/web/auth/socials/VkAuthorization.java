@@ -10,9 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
-import ru.newsagregator.web.auth.oauth.OAuthException;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import ru.newsagregator.main.NewsAgregator;
 import ru.newsagregator.web.auth.oauth.OAuthImpl;
-import ru.newsagregator.web.http.NAHttpResponse;
 
 /**
  *
@@ -20,13 +21,49 @@ import ru.newsagregator.web.http.NAHttpResponse;
  */
 public class VkAuthorization extends OAuthImpl{
 
+    private static final String OAuthURI = "oauth.vk.com/authorize", applicationId = "4812992", //параметры для вк. можно будет перебросить в конфиг
+            scope = "124", redirectURI = "https://oauth.vk.com/blank.html", display = "popup",
+            version = "5.29", responseType = "token";
     private String email, password;
-    private NAHttpResponse response;
-    public VkAuthorization(String OAuthURI, String applicationId, String scope, String redirectURI, String display, String version, String responseType) throws OAuthException {
-        super(OAuthURI, applicationId, scope, redirectURI, display, version, responseType);
-    }    
     
-    private List<NameValuePair> getAuthFormParams(String email, String password){
+    public VkAuthorization(){
+        super(OAuthURI, applicationId, scope, redirectURI, display, version, responseType);
+        if (currException != null) System.err.println(currException.getReason());
+    }
+    
+    /**
+     * Возвращает AccessToken, если это возможно. 
+     * @param email
+     * @param password
+     * @return AccessToken 
+     */
+    @Override
+    public String performAuthorization(String email, String password) {
+        response = browser.sendGetRequest();
+        NewsAgregator.doAfterRequest(browser, response);
+        if (response != null){
+            if (response.isEmpty()){
+                
+            }
+        }
+        browser.setCurrentURI("https://login.vk.com/?act=login&soft=1");
+        browser.setFormParams(getAuthFormParams(email, password, response.getResponseContet()));
+        response = browser.sendPostRequest();
+        NewsAgregator.doAfterRequest(browser, response);
+        String locationValue = response.getLocationHeader();
+        browser.setCurrentURI(locationValue);
+        response = browser.sendGetRequest();
+        NewsAgregator.doAfterRequest(browser, response);
+        
+        return response.getFinalLocation();
+    }
+
+    @Override
+    public Boolean isAuthorized(String accessToken) {
+        return null;
+    }
+    
+    private List<NameValuePair> getAuthFormParams(String email, String password, String page){
         List<NameValuePair> params = new ArrayList<>();
         params.add(new BasicNameValuePair("ip_h", "902335c18b5e703797"));
         params.add(new BasicNameValuePair("_origin", "https://oauth.vk.com"));
@@ -39,31 +76,6 @@ public class VkAuthorization extends OAuthImpl{
         params.add(new BasicNameValuePair("pass", password)); //подставить сюда пароль
         return params;
         
-    }
-    
-    
-    @Override
-    public String performAuthorization(String email, String password) {
-        response = browser.sendGetRequest();
-        if (response != null){
-            if (response.isEmpty()){
-                
-            }
-        }
-        browser.setCurrentURI("https://login.vk.com/?act=login&soft=1");
-        browser.setFormParams(getAuthFormParams(email, password));
-        response = browser.sendPostRequest();
-        
-        String locationValue = response.getLocationHeader();
-        browser.setCurrentURI(locationValue);
-        response = browser.sendGetRequest(); 
-        
-        return response.getFinalLocation();
-    }
-
-    @Override
-    public Boolean isAuthorized(String accessToken) {
-        return null;
     }
     
 }

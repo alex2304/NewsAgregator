@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
+import ru.newsagregator.web.auth.Authorization;
 import ru.newsagregator.web.auth.oauth.OAuthException;
 import ru.newsagregator.web.auth.socials.VkAuthorization;
 import ru.newsagregator.web.http.NAHttpBrowser;
@@ -90,51 +91,14 @@ public class NewsAgregator {
         browser.setCurrentURI(locationValue);
         response = browser.sendGetRequest(); 
         System.out.println(response.getFinalLocation()); */
-        try {
-            VkAuthorization vkAuthorize = new VkAuthorization("oauth.vk.com/authorize", "4812992", "124", "https://oauth.vk.com/blank.html", null, null, null);
-            String accessToken = vkAuthorize.performAuthorization("dragon-dex@yandex.ru", ""); //подставить данные
-            System.out.println(accessToken);
-        } catch (OAuthException e){
-            System.err.println(e.getReason());
-        }
+        Authorization autorization = new Authorization();
+        String accessToken = autorization.getVkAccessToken("xd720p.infoshell@gmail.com", "testinfoshell404");
+        System.out.println(accessToken);
         
     }
     
     public static void doAfterRequest(NAHttpBrowser browser, NAHttpResponse response){
-        System.out.println("[");
-        for (NameValuePair cookie: browser.getAllCookies()){ //проверяем считывание куков из файла
-            BasicNameValuePair curr = (BasicNameValuePair)cookie;
-            System.out.println(" " + curr.toString() + " ");
-        }
-        System.out.println("]");
-
-        if (response != null){ //входные параметры запроса корректны
-            if (!response.isEmpty()){ //удалось выполнить запрос
-                List<NAHttpHeader> responseHeaders = response.getResponseHeaders();
-                for (NAHttpHeader curr: responseHeaders){ //вывод заголовков ответа
-                    System.out.println(curr.toString());
-                }
-                if (response.hasContent()){ //есть контент ответа
-                    System.out.println("\n"+response.getResponseContet()); //вывод контента в поток вывода
-
-                    File file = new File("test.html"); //вывод контента в html файл для удобной проверки
-                    try {
-                        if(file.exists()){
-                            file.delete();
-                        }
-                        file.createNewFile();
-                        BufferedWriter bufWriter;
-                        OutputStreamWriter os = new OutputStreamWriter(new FileOutputStream(file), Charset.forName("Windows-1251"));
-                        bufWriter = new BufferedWriter(os);
-                        bufWriter.append(response.getResponseContet());
-                        bufWriter.flush();
-                        bufWriter.close();
-                    } catch(IOException e) {
-                        System.err.println(Arrays.toString(e.getStackTrace()));
-                    }
-                }
-            }
-        }
+        
     }
     
 }
