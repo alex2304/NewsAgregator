@@ -10,9 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import ru.newsagregator.main.NewsAgregator;
+import ru.newsagregator.main.Tester;
 import ru.newsagregator.web.auth.oauth.OAuthImpl;
 
 /**
@@ -40,22 +38,21 @@ public class VkAuthorization extends OAuthImpl{
     @Override
     public String performAuthorization(String email, String password) {
         response = browser.sendGetRequest();
-        NewsAgregator.doAfterRequest(browser, response);
+        Tester.testAfterRequest(browser, response);
         if (response != null){
-            if (response.isEmpty()){
+            if (!response.isEmpty()){
                 
             }
         }
         browser.setCurrentURI("https://login.vk.com/?act=login&soft=1");
         browser.setFormParams(getAuthFormParams(email, password, response.getResponseContet()));
         response = browser.sendPostRequest();
-        NewsAgregator.doAfterRequest(browser, response);
+        Tester.testAfterRequest(browser, response);
         String locationValue = response.getLocationHeader();
         browser.setCurrentURI(locationValue);
         response = browser.sendGetRequest();
-        NewsAgregator.doAfterRequest(browser, response);
-        
-        return response.getFinalLocation();
+        Tester.testAfterRequest(browser, response); 
+        return response.getFinalLocation(); 
     }
 
     @Override

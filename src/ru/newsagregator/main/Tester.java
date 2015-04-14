@@ -17,7 +17,7 @@ import java.util.List;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 import ru.newsagregator.web.http.NAHttpBrowser;
-import ru.newsagregator.web.http.NAHttpHeader;
+import ru.newsagregator.web.http.headers.NAHttpHeader;
 import ru.newsagregator.web.http.NAHttpResponse;
 
 /**
@@ -28,7 +28,7 @@ public class Tester {
     
     public static void testAfterRequest(NAHttpBrowser browser, NAHttpResponse response){
         System.out.println("[");
-        for (NameValuePair cookie: browser.getAllCookies()){ //проверяем считывание куков из файла
+        for (NameValuePair cookie: browser.getAllCookies()){ //выводим текущие куки на страницу
             BasicNameValuePair curr = (BasicNameValuePair)cookie;
             System.out.println(" " + curr.toString() + " ");
         }
@@ -42,7 +42,6 @@ public class Tester {
                 }
                 if (response.hasContent()){ //есть контент ответа
                     System.out.println("\n"+response.getResponseContet()); //вывод контента в поток вывода
-
                     File file = new File("test.html"); //вывод контента в html файл для удобной проверки
                     try {
                         if(file.exists()){

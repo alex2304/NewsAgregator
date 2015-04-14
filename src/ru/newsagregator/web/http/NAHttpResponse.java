@@ -6,6 +6,7 @@
 
 package ru.newsagregator.web.http;
 
+import ru.newsagregator.web.http.headers.NAHttpHeader;
 import java.util.List;
 import org.apache.http.message.BasicNameValuePair;
 
@@ -151,6 +152,10 @@ public final class NAHttpResponse {
         return null;
     }
 
+    /**
+     * Получает заголовок "Location" и возвращает его в строковом представлении
+     * @return http ссылка, указанная в Location: ...
+     */
     public String getLocationHeader() {
         NAHttpHeader location = this.getHeaderByName("location");
         if (location == null) return null;

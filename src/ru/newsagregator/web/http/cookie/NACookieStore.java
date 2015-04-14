@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package ru.newsagregator.web.http;
+package ru.newsagregator.web.http.cookie;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -84,12 +84,7 @@ public class NACookieStore extends BasicCookieStore{
                 c.setPath(cookieParser.getCookiePath());
                 c.setVersion(cookieParser.getCookieVersion());
                 c.setDomain(cookieParser.getCookieDomain());
-                try {
-                    c.setExpiryDate(cookieParser.getCookieExpires());
-                } catch (ParseException e){
-                    System.err.println("CookieParser: can't parse expires date of cookie '" + c.getName() + "'");
-                    c.setExpiryDate(null);
-                }
+                c.setExpiryDate(cookieParser.getCookieExpires());
                 result[i] = c;
             }
             return result;

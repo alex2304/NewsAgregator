@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package ru.newsagregator.web.http;
+package ru.newsagregator.web.http.cookie;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -20,8 +20,9 @@ public class NACookieParser {
     
     protected static final String NAME = "name", VALUE = "value", SPLITTER = "@%",
             VERSION = "version", DOMAIN = "domain", EXPIRES = "expires", PATH = "path";
+    protected static final String[] datepatterns = {"EEE, dd MMM yyyy HH:mm:ss 'GMT'"};
     private String cookieStr;
-    private DateFormat dateFormatter;
+    private SimpleDateFormat dateFormatter;
     
     /**
      * Объект класса может "упаковывать" Cookie -> String и "распаковывать" обратно String -> Cookie
@@ -29,7 +30,7 @@ public class NACookieParser {
      */
     public NACookieParser(String cookieStr){
         this.cookieStr = cookieStr;
-        dateFormatter = new SimpleDateFormat();
+        dateFormatter = new SimpleDateFormat(datepatterns[0]);
     }
     
     /**
@@ -59,8 +60,12 @@ public class NACookieParser {
                 concatParameter(result, VALUE, value) + 
                 concatParameter(result, DOMAIN, domain) +
                 concatParameter(result, PATH, path) + 
-                concatParameter(result, EXPIRES, (expires == null) ? null: expires.toString()));
+                concatParameter(result, EXPIRES, (expires == null) ? null: cookieDateToString(expires)));
         return result;
+    }
+    
+    private String cookieDateToString(Date date){
+        return dateFormatter.format(date);
     }
     
     /**
@@ -153,10 +158,21 @@ public class NACookieParser {
      * @throws IOException если строка в поле класса null либо имеет неверный формат
      * @throws java.text.ParseException ошибка возникнет, если дата имеет неверный формат
      */
-    public Date getCookieExpires() throws IOException, ParseException{
-        checkCookieStr();
-        String date = parseCookieParamFromString(EXPIRES);
-        return date.equalsIgnoreCase("null") ? null: dateFormatter.parse(date);
+    public Date getCookieExpires() throws ParseException{
+        String date = "null";
+        try {
+            checkCookieStr();
+            date = parseCookieParamFromString(EXPIRES);
+        } catch (IOException e){
+            System.err.println(e.getMessage());
+        }
+        try {
+            return date.equalsIgnoreCase("null") ? null: dateFormatter.parse(date);
+        } catch (ParseException e){
+            System.err.println("Cookie parser: " + e.getLocalizedMessage());
+            return null;
+        } 
+        
     }
     // </editor-fold>
 }

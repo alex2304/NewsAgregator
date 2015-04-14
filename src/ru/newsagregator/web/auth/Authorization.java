@@ -6,7 +6,6 @@
 
 package ru.newsagregator.web.auth;
 
-import ru.newsagregator.web.auth.oauth.OAuthException;
 import ru.newsagregator.web.auth.socials.VkAuthorization;
 
 /**
@@ -14,8 +13,8 @@ import ru.newsagregator.web.auth.socials.VkAuthorization;
  * @author Leha
  */
 public class Authorization {
-    private VkAuthorization vkAutorization; 
-    //private instagrammAutorization instagrammAutorization; //for example
+    private final VkAuthorization vkAutorization; 
+    //private InstagrammAutorization instagrammAutorization; //for example
     
     public Authorization(){
         vkAutorization = new VkAuthorization();

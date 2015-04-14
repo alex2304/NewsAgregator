@@ -6,6 +6,11 @@
 
 package ru.newsagregator.web.http;
 
+import ru.newsagregator.web.http.headers.NAKeepAliveStrategy;
+import ru.newsagregator.web.http.headers.NAHttpHeader;
+import ru.newsagregator.web.http.headers.NAHttpHeaders;
+import ru.newsagregator.web.http.cookie.NACookieStore;
+import ru.newsagregator.web.http.cookie.NACookieSpecProvider;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -19,6 +24,7 @@ import org.apache.http.HeaderElementIterator;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.NameValuePair;
+import org.apache.http.ParseException;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -27,10 +33,16 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIUtils;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.util.PublicSuffixMatcher;
+import org.apache.http.conn.util.PublicSuffixMatcherLoader;
 import org.apache.http.cookie.Cookie;
+import org.apache.http.cookie.CookieSpecProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.cookie.BasicClientCookie;
+import org.apache.http.impl.cookie.DefaultCookieSpecProvider;
 import org.apache.http.message.BasicHeaderElementIterator;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
@@ -44,6 +56,7 @@ public class NAHttpBrowser {
     private static final String userAgent = "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko)";
     private static final long keepAliveTime = 5000;
     private final String storePath = "config/conf";
+    private final String defaultCharset = "Windows-1251";
     
     private final CloseableHttpClient httpClient; //Клиент со множеством параметров. httpResponse = htpClient.execute(HttpGet/Post http) - для отправки запроса на сервер и получения ответа
     private URI currentURI; //текущий адрес, по которому будут выполняться запросы
@@ -78,17 +91,28 @@ public class NAHttpBrowser {
             System.err.println(e.getMessage());
             cookieStore = new NACookieStore();
         }
+        
+        /* Установка кастомного обработчика cookie */
+        PublicSuffixMatcher publicSuffixMatcher = PublicSuffixMatcherLoader.getDefault();
+        Registry<CookieSpecProvider> r = RegistryBuilder.<CookieSpecProvider>create()
+        .register(CookieSpecs.DEFAULT, new DefaultCookieSpecProvider(publicSuffixMatcher))
+        .register(NACookieSpecProvider.PROVIDER_NAME, new NACookieSpecProvider())
+        .build();
+        
         clientContext = HttpClientContext.create();
         customHeaders = new ArrayList<NameValuePair>();
         initializeGetPost();
         httpResponse = null;
         formEntity = null;
-        httpClient = HttpClients.custom()
-                .setKeepAliveStrategy(new NAKeepAliveStrategy(keepAliveTime))
-                .setUserAgent(userAgent)
-                .setDefaultHeaders(NAHttpHeaders.getDefaultHeadersList())
-                .setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build())
-                .setDefaultCookieStore(cookieStore)
+        httpClient = HttpClients.custom()                                       //кастомный httpClient
+                .setKeepAliveStrategy(new NAKeepAliveStrategy(keepAliveTime))   //установка дефолтного keep-alive time в значение keepAliveTime
+                .setUserAgent(userAgent)                                        //установка дефолтного user-agent'а 
+                .setDefaultHeaders(NAHttpHeaders.getDefaultHeadersList())       //установка заголовков, которые будут добавляться всегда
+                .setDefaultRequestConfig(RequestConfig.custom()                 //установка дефолтного request-config
+                        .setCookieSpec(NACookieSpecProvider.PROVIDER_NAME)      //..установка кастомного куки процессора
+                        .build())                                               //..
+                .setDefaultCookieSpecRegistry(r)                                //установка регистра процессоров куки
+                .setDefaultCookieStore(cookieStore)                             //установка хранилища куки
                 .build();
     }
     
@@ -162,6 +186,9 @@ public class NAHttpBrowser {
         return true;
     }
     
+    /**
+     * Вызывается после каждого request'а. Сохраняет куки, обнуляет параметры.
+     */
     private void applyParamsAfterRequest(){
         if (!storeFormParams) formEntity = null;
         try {
@@ -182,9 +209,11 @@ public class NAHttpBrowser {
         try {
             this.httpResponse = (reqType) ? httpClient.execute(httpGet, clientContext): httpClient.execute(httpPost, clientContext);
             if (this.httpResponse != null){
-                int responseCode = this.httpResponse.getStatusLine().getStatusCode(); //получаем status code
+                //получаем status code
+                int responseCode = this.httpResponse.getStatusLine().getStatusCode();
                 
-                List<NAHttpHeader> resultResponseHeaders = new ArrayList<NAHttpHeader>(); //получаем заголовки ответа
+                //получаем заголовки ответа
+                List<NAHttpHeader> resultResponseHeaders = new ArrayList<NAHttpHeader>(); 
                 HeaderElementIterator it;
                 String currHeaderName;
                 Header[] responseHeaders = httpResponse.getAllHeaders();
@@ -194,15 +223,17 @@ public class NAHttpBrowser {
                     resultResponseHeaders.add(new NAHttpHeader(currHeaderName, parseHeaderParameters(it)));
                 }
                 
-                HttpHost target = clientContext.getTargetHost(); //получаем http адрес назначения
+                //получаем http адрес назначения
+                HttpHost target = clientContext.getTargetHost(); 
                 List<URI> redirectLocations = clientContext.getRedirectLocations();
                 URI location = URIUtils.resolve((reqType) ? httpGet.getURI(): httpPost.getURI(), target, redirectLocations);
                 String finalLocation = (location == null) ? null: location.toASCIIString();
                 
-                long contentLength = 0; //получаем длину контента и сам контент
-                String responseContent = null;
+                //получаем длину контента и сам контент (с учётом кодировки)
+                long contentLength = 0; 
                 HttpEntity responseEntity = this.httpResponse.getEntity();
-                if (responseEntity != null){
+                result = new NAHttpResponse(responseCode, resultResponseHeaders, null, 0, finalLocation); //инициализируем response без content и content-length
+                if (responseEntity != null){ //если есть контент
                     contentLength = responseEntity.getContentLength();
                     /*byte[] responseText = new byte[contentLength]; //"самопальная" версия получения контента (не тестировалась)
                     InputStream instream = responseEntity.getContent();
@@ -212,14 +243,22 @@ public class NAHttpBrowser {
                     } else {
                         contentLength = 0; 
                     } */
-                    responseContent = EntityUtils.toString(responseEntity); //текущая бета-версия получения контента
-
+                    try {
+                        result.setResponseContet(EntityUtils.toString(responseEntity, getResponseContentCharset(result))); //пытаемся установить контент в кодировке из ответа сервера
+                    } catch (IOException | ParseException exc0){
+                        try {
+                            result.setResponseContet(EntityUtils.toString(responseEntity, defaultCharset)); //если не получилось - пытаемся установить в кодировке по-умолчанию
+                        } catch (IOException | ParseException exc1){
+                            result.setResponseContet(EntityUtils.toString(responseEntity)); //если и это не сработало - устанавливаем без кодировки; раз такой умный - пусть сам разбирается :)
+                        }
+                        
+                    } 
+                    result.setContentLength(contentLength); //и длину контента тоже устанавливать не забываем
                 }
                 
-                result = new NAHttpResponse(responseCode, resultResponseHeaders, responseContent, contentLength, finalLocation);
             } else throw new Exception("Connection troubles");
         } catch (Exception e){
-            System.err.println(e.getMessage());
+            System.err.println(Arrays.toString(e.getStackTrace()));
         }
         finally {
             try {
@@ -230,6 +269,28 @@ public class NAHttpBrowser {
             applyParamsAfterRequest();
             return result;
         }
+    }
+    
+    /**
+     * Возвращает имя кодировки, в которой кодируется контент ответа Response
+     * @param response
+     * @return 
+     */
+    private String getResponseContentCharset(NAHttpResponse response){
+        String charset = defaultCharset;
+        if (response == null) return charset; //на всякий случай
+        NAHttpHeader contentTypeHeader = response.getHeaderByName("Content-Type");  //получаем инфу о заголовке Content-Type
+        if (contentTypeHeader != null){ //есть ли заголовок Content-Type?
+            if (contentTypeHeader.getParameters().size() > 1){ //если да - есть ли у него минимум два параметра?
+                BasicNameValuePair charsetParam = (BasicNameValuePair)contentTypeHeader.getParameters().get(1);
+                if (charsetParam.getName().equalsIgnoreCase("charset")){ //если да - является ли второй параметр параметром "charset"?
+                    if (charsetParam.getValue() != null){ //если да - значение charset не null?
+                        charset = charsetParam.getValue();
+                    }
+                }
+            }
+        }
+        return charset;
     }
     
     /**

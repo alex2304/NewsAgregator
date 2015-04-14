@@ -6,24 +6,8 @@
 
 package ru.newsagregator.main;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.net.URLEncoder;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
 import ru.newsagregator.web.auth.Authorization;
-import ru.newsagregator.web.auth.oauth.OAuthException;
-import ru.newsagregator.web.auth.socials.VkAuthorization;
-import ru.newsagregator.web.http.NAHttpBrowser;
-import ru.newsagregator.web.http.NAHttpHeader;
-import ru.newsagregator.web.http.NAHttpResponse;
 
 /**
  *
@@ -94,10 +78,6 @@ public class NewsAgregator {
         Authorization autorization = new Authorization();
         String accessToken = autorization.getVkAccessToken("xd720p.infoshell@gmail.com", "testinfoshell404");
         System.out.println(accessToken);
-        
-    }
-    
-    public static void doAfterRequest(NAHttpBrowser browser, NAHttpResponse response){
         
     }
     
