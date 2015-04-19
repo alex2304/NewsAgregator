@@ -22,7 +22,6 @@ public class VkAuthorization extends OAuthImpl{
     private static final String OAuthURI = "oauth.vk.com/authorize", applicationId = "4812992", //параметры для вк. можно будет перебросить в конфиг
             scope = "124", redirectURI = "https://oauth.vk.com/blank.html", display = "popup",
             version = "5.29", responseType = "token";
-    private String email, password;
     
     public VkAuthorization(){
         super(OAuthURI, applicationId, scope, redirectURI, display, version, responseType);

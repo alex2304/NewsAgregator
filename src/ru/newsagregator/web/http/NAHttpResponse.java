@@ -23,6 +23,23 @@ public final class NAHttpResponse {
     private String responseContet;
     private boolean empty, content;
     
+    /**
+     * Возвращает контент ответа либо null, если контент отсутствует.
+     * @param response ответ, из которого требуется извлечь контент
+     * @return null, если контент отсутствует, в противном случае строка, представляющая собой контент ответа.
+     */
+    public static String resolveResponseContent(NAHttpResponse response){
+        String responseContent = null;
+        if (response != null){
+            if (!response.isEmpty()){
+                if (response.hasContent()){
+                    responseContent = response.getResponseContet();
+                }
+            }
+        }
+        return responseContent;
+    }
+    
     public NAHttpResponse(){
         this.responseCode = 0;
         this.contentLength = 0;
