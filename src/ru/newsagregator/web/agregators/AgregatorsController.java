@@ -15,18 +15,40 @@ import ru.newsagregator.web.agregators.vk.VkAgregator;
  */
 public class AgregatorsController {
     private VkAgregator vkAgregator; //агрегатор новостей из ВК
-    private boolean agregateVk, agregateInstagramm;
     //private InstagrammAgregator instagrammAgregator; //агрегатор новостей из инстаграмма
+    private boolean agregateVk, agregateInstagramm;
     
     public AgregatorsController(String vkAccessToken, String vkUserId, String instagrammAccessToken){
+        setVkAgregator(vkAccessToken, vkUserId);
+        setInstagrammAgregator(instagrammAccessToken);
+    }
+    
+    public AgregatorsController(String vkAccessToken, String vkUserId){
+        setVkAgregator(vkAccessToken, vkUserId);
+        agregateInstagramm = false;
+    }
+    
+    public AgregatorsController(String instagrammAccessToken){
+        agregateVk = false;
+        setInstagrammAgregator(instagrammAccessToken);
+    }
+    
+    public boolean setVkAgregator(String vkAccessToken, String vkUserId){
         if (vkAccessToken != null && vkUserId != null){
             vkAgregator = new VkAgregator(vkAccessToken, vkUserId);
             agregateVk = true;
-        } else agregateVk = false;
+        } else {
+            agregateVk = false;
+        }
+        return agregateVk;
+    }
+    
+    public boolean setInstagrammAgregator(String instagrammAccessToken){
         if (instagrammAccessToken != null){
-            /*instagrammAgregator = new InstagrammAgregator(instagrammAccessToken);
-            agregateInstagramm = true; */
+            /*instagrammAgregator = new InstagrammAgregator(instagrammAccessToken); */
+            agregateInstagramm = true;
         } else agregateInstagramm = false; 
+        return agregateInstagramm;
     }
 
     /**
@@ -43,7 +65,4 @@ public class AgregatorsController {
         return agregateInstagramm;
     }
     
-    public String getGroups(){
-        return null;
-    }
 }

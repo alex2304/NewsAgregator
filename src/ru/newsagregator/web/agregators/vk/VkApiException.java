@@ -10,6 +10,10 @@ package ru.newsagregator.web.agregators.vk;
  *
  * @author Leha
  */
-public class VkApiError {
+public class VkApiException extends Exception{
+
+
+    public VkApiException() {
+    }
     
 }

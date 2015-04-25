@@ -7,6 +7,7 @@
 package ru.newsagregator.web.agregators.vk;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Formatter;
 import java.util.List;
 
@@ -16,39 +17,46 @@ import java.util.List;
  */
 public class VkApi {
     
-    private final String userId, accessToken;
+    private final String userId, accessToken, version;
     private String templateString;
     private Formatter queryFormatter;
     
-    public VkApi(String accessToken, String userId){
+    public VkApi(String accessToken, String userId, String version){
         this.userId = userId;
+        this.version = version;
         this.accessToken = accessToken;
         queryFormatter = new Formatter();
         makeTemplateString();
     }
     
     /**
-     * Возвращает строку для запроса групп, на которые подписан пользователь.
-     * @param paramsList список параметров
-     * @return строка запроса
-     */
-    protected String groupsGet(List<VkApiParam> paramsList){
-        String paramsString = "";
-        List<String> paramsValues = new ArrayList<String>();
-        queryFormatter = new Formatter();
-        Formatter paramsFormatter = new Formatter();
-        paramsString += "&user_id=%s";
-        paramsValues.add(userId);
-        for (VkApiParam p : paramsList) {
-            paramsString += p.getName();
-            paramsValues.add(p.getValue());
-        }
-        paramsFormatter.format(paramsString, paramsValues.toArray());
-        queryFormatter.format(templateString, VkApiMethods.GROUPS_GET, paramsFormatter.toString());
-        return queryFormatter.toString();
-    }
-
+     * Создаёт шаблонную строку запроса.
+    */
     private void makeTemplateString() {
         this.templateString = VkApiMethods.API_URL + "%s?" + VkApiMethods.ACCESS_TOKEN + "=" + accessToken + "%s";
     }
+    
+    /**
+     * Создаёт строку запроса для указанного метода и добавляет к ней указанные параметры.
+     * @param methodName имя метода, к которому планируется обратиться
+     * @param paramsList список параметров в нужном порядке
+     * @return строка запроса
+     */
+    protected String makeQueryString(String methodName, List<VkApiParam> paramsList){
+        String paramsStr = "";
+        List<String> paramsValues = new ArrayList<String>();
+        queryFormatter = new Formatter();
+        Formatter paramsFormatter = new Formatter();
+        paramsStr += "&user_id=%s";
+        paramsValues.add(userId);
+        paramsStr += "&v=%s";
+        paramsValues.add(version);
+        for (VkApiParam p : paramsList) {
+            paramsStr += p.getName();
+            paramsValues.add(p.getValue());
+        }
+        paramsFormatter.format(paramsStr, paramsValues.toArray());
+        return queryFormatter.format(templateString, methodName, paramsFormatter.toString()).toString();
+    }    
+    
 }
