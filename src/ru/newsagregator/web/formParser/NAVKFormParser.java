@@ -21,16 +21,21 @@ import org.jsoup.select.Elements;
  *
  * @author Пётр
  */
-public class NAFormParser {
+public class NAVKFormParser {
     private Document parsingPage;
     private Elements inputParams;
     private List<NameValuePair> paramList;
     
-    public NAFormParser(String page) throws IOException{
+    public NAVKFormParser(String page) throws IOException{
         parsingPage = Jsoup.parse(page);
         paramList = new ArrayList<>();
     }
-    
+    /**
+     * Данная функция формирует список параметров для авторизации в ВК
+     * @param email - email пользователя
+     * @param password - пароль пользователя
+     * @return возвращает список атрибутов, необходимых для авторизации во ВК 
+     */
     public List<NameValuePair> getInputFormParams(String email, String password) {
         setInputParams(getParsingPage().select("input"));
         for (int i=0; i<getInputParams().size(); i++) {       

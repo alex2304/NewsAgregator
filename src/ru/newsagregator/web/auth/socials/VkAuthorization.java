@@ -15,7 +15,8 @@ import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 import ru.newsagregator.main.Tester;
 import ru.newsagregator.web.auth.oauth.OAuthImpl;
-import ru.newsagregator.web.formParser.NAFormParser;
+import ru.newsagregator.web.formParser.NAVKFormParser;
+import ru.newsagregator.web.permissionParser.NAVKPermissionParser;
 
 /**
  *
@@ -56,10 +57,18 @@ public class VkAuthorization extends OAuthImpl{
         response = browser.sendPostRequest();
         Tester.testAfterRequest(browser, response);
         String locationValue = response.getLocationHeader();
-        browser.setCurrentURI(locationValue);
-        response = browser.sendGetRequest();
-        Tester.testAfterRequest(browser, response); 
-        return response.getFinalLocation(); 
+        browser.setCurrentURI(locationValue); // получаем адрес потенциальной страницы разрешения
+        response=browser.sendGetRequest(); //переходим на страницу разрешения                
+        NAVKPermissionParser per = new NAVKPermissionParser(response.getResponseContet()); //кормим Jsoup нашей страничкой
+        browser.setCurrentURI(per.getAccess()); //ставим URI кнопочку разрешения
+        if (browser.getCurrentURI()!=null) { // если кнопочка есть, то жамкаем
+          response = browser.sendGetRequest();
+          Tester.testAfterRequest(browser, response);
+        } else { //иначе мы уже подвтердили
+          Tester.testAfterRequest(browser, response); 
+          return response.getFinalLocation();  
+        }
+        return response.getFinalLocation();   
     }
 
     @Override
@@ -69,7 +78,7 @@ public class VkAuthorization extends OAuthImpl{
     
     private List<NameValuePair> getAuthFormParams(String email, String password, String page) throws IOException{
         List<NameValuePair> params = new ArrayList<>();
-        NAFormParser pPage = new NAFormParser(page); 
+        NAVKFormParser pPage = new NAVKFormParser(page); 
         params=pPage.getInputFormParams(email, password);
         return params;
         
