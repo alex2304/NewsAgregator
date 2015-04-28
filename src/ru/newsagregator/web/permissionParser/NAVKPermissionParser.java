@@ -16,9 +16,11 @@ import org.jsoup.select.Elements;
  */
 public class NAVKPermissionParser {
     private Document permissionPage;
+    private String loc;
     private Elements permissionButton;
     
     public NAVKPermissionParser(String page) {
+        loc=page;
         permissionPage=Jsoup.parse(page);
         permissionButton=null;
     }
@@ -40,9 +42,13 @@ public class NAVKPermissionParser {
      * @return 
      */
     public String getAccess() {
-        setPermissionButton(getPermissionPage().select("button"));
+        permissionButton=permissionPage.select("button");
         if (isPermissionPage(permissionButton)) {
-            return "https://login.vk.com/?act=grant_access&client_id=4812992&settings=124&redirect_uri=https%3A%2F%2Foauth.vk.com%2Fblank.html&response_type=token&direct_hash=dc780ffdfc27a87de0&token_type=0&v=5.29&state=&display=popup&ip_h=5a3db734e0163200f2&hash=e1dd13fca0a21013f6&https=1";
+            String[]loca = loc.split("function");
+            loc=loca[1];
+            loca=loc.split("\"");
+            loc=loca[1];
+            return loc;
         } else {
             return null;  
         }
