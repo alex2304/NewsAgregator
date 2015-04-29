@@ -43,6 +43,20 @@ public class VkAuthorization extends OAuthImpl{
     public String performAuthorization(String email, String password) {
         response = browser.sendGetRequest();
         Tester.testAfterRequest(browser, response);
+        NAVKPermissionParser per = new NAVKPermissionParser(response.getResponseContet()); //кормим Jsoup нашей страничкой
+        if (browser.getAllCookies().size()>1) {
+            if (response.getFinalLocation().contains("access_token=")) {
+                return response.getFinalLocation();
+            }
+            browser.setCurrentURI(per.getAccess());
+            if (browser.getCurrentURI()!=null) { // если кнопочка есть, то жамкаем
+                response = browser.sendGetRequest();
+                Tester.testAfterRequest(browser, response);
+                return response.getFinalLocation();
+            }
+        }
+        
+        //=======================================================
         if (response != null){
             if (!response.isEmpty()){
              
@@ -58,8 +72,9 @@ public class VkAuthorization extends OAuthImpl{
         Tester.testAfterRequest(browser, response);
         String locationValue = response.getLocationHeader();
         browser.setCurrentURI(locationValue); // получаем адрес потенциальной страницы разрешения
-        response=browser.sendGetRequest(); //переходим на страницу разрешения                
-        NAVKPermissionParser per = new NAVKPermissionParser(response.getResponseContet()); //кормим Jsoup нашей страничкой
+        response=browser.sendGetRequest(); //переходим на страницу разрешения   
+        //=============================================================
+        per = new NAVKPermissionParser(response.getResponseContet());
         browser.setCurrentURI(per.getAccess()); //ставим URI кнопочку разрешения
         if (browser.getCurrentURI()!=null) { // если кнопочка есть, то жамкаем
           response = browser.sendGetRequest();
